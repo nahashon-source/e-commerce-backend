@@ -1,43 +1,41 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from . import crud, schemas, database
+from . import crud, schemas
+from .database import SessionLocal
+
 
 router = APIRouter()
 
-# Dependency
-get_db = database.get_db
+#Dependancy to get the DB session fo each request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        
+        #GET/ products
+@router.get("/products", response_model=list[schemas.Product])
+def read_products(db: Session = Depends(get_db)):
+    return crud.get_all_products(db)
 
-# Products
-@router.post("/products", response_model=schemas.ProductOut)
+#GET / products/{id},
+@router.get("products/{product_id}", response_model=schemas.product)
+def read_product(product_id: int, db:Session = Depends(get_db)):
+ product = crud.get_product(db, product_id)
+ if not product:
+     raise HTTPException(status_code=404, detail="Product not found")
+ return product
+
+#POST /products
+@router.post("/products, response_model=schemas.Product")
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
     return crud.create_product(db, product)
 
-@router.get("/products", response_model=list[schemas.ProductOut])
-def list_products(db: Session = Depends(get_db)):
-    return crud.get_products(db)
-
-@router.get("/products/{product_id}", response_model=schemas.ProductOut)
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    product = crud.get_product(db, product_id)
+# PUT /products/{id}/status
+@router.put("/products/{product_id}/status", response_model=schemas.Product)
+def mark_sold(product_id: int, db: Session = Depends(get_db)):
+    product = crud.mark_product_sold(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
-
-@router.put("/products/{product_id}/status")
-def update_status(product_id: int, status: str, db: Session = Depends(get_db)):
-    product = crud.update_product_status(db, product_id, status)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return {"message": "Status updated"}
-
-@router.delete("/products/{product_id}")
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    product = crud.delete_product(db, product_id)
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found")
-    return {"message": "Product deleted"}
-
-# Orders
-@router.post("/orders", response_model=schemas.OrderOut)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    return crud.create_order(db, order)
