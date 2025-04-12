@@ -1,29 +1,22 @@
 from pydantic import BaseModel
 from typing import Optional
 
-# Product
+#Base schema shared between create/update/read
 class ProductBase(BaseModel):
-    name: str
+    name:str
+    description: Optional[str] = None
     price: float
-    status: Optional[str] = "Available"
-
+    quantity: int
+    
+    
+#schema for creating a new product(creation requests(POST/products))
 class ProductCreate(ProductBase):
     pass
 
-class ProductOut(ProductBase):
-    id: int
-    class Config:
-        orm_mode = True
-
-# Order
-class OrderBase(BaseModel):
-    product_id: int
-    quantity: int
-
-class OrderCreate(OrderBase):
-    pass
-
-class OrderOut(OrderBase):
-    id: int
-    class Config:
-        orm_mode = True
+#schemas for response(includes ID and status)
+class product(ProductBase):
+    id : int
+    status : str
+    
+    class config:
+        orm_mode = True # allows SQLALCHEMY models to work with pydantic for auto serialization
