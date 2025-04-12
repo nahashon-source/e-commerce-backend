@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
+
 
 #Base schema shared between create/update/read
 class ProductBase(BaseModel):
@@ -20,3 +22,20 @@ class product(ProductBase):
     
     class config:
         orm_mode = True # allows SQLALCHEMY models to work with pydantic for auto serialization
+        
+        
+        
+    #Request: when placing an order
+class OrderCreate(BaseModel): #is for incoming data when placing an order.
+    product_id: int 
+    quantity: int
+    
+class Order(BaseModel): #is for sending order data back (includes total_price, created_at).
+    id : int
+    product_id: int
+    quantity: int
+    total_price: float
+    created_at: datetime
+    
+class Config: # allows FastAPI to return SQLAlchemy models as JSON
+    orm_mode = True
