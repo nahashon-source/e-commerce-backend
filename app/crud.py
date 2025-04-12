@@ -1,39 +1,36 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 
-# Products
-def create_product(db: Session, product: schemas.ProductCreate):
-    db_product = models.Product(**product.dict())
-    db.add(db_product)
+#CREATE
+def create_products(db: Session, product: schemas.ProductCreate): #create_prodct take a pydantic schema, converts it to a model, adds it to the DB
+    new_product = models.product(
+        name=product.name,
+        description=product.description,
+        price=product.price,
+        quantity=product.quantity
+    )
+    
+    db.add(new_product)
     db.commit()
-    db.refresh(db_product)
-    return db_product
+    db.refresh(new_product)
+    return new_product
 
-def get_products(db: Session):
-    return db.query(models.Product).all()
 
-def get_product(db: Session, product_id: int):
-    return db.query(models.Product).filter(models.Product.id == product_id).first()
+#READ ALL
+def get_all_products(db: Session):# Returns a list of all products
+    return db.querry(models.product).all()
 
-def update_product_status(db: Session, product_id: int, status: str):
-    product = get_product(db, product_id)
+#READ ONE BY ID
+def get_product(db: Session, product_id: int): # Fetches a single product by ID
+    return db.query(models.product).filter(models.Product.id == product_id).first()
+
+#UPDATE STATUS TO "Sold"
+def mark_product_sold(db:Session, product_id: int):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if product:
-        product.status = status
+        product.status = "sold"
         db.commit()
         db.refresh(product)
-    return product
-
-def delete_product(db: Session, product_id: int):
-    product = get_product(db, product_id)
-    if product:
-        db.delete(product)
-        db.commit()
-    return product
-
-# Orders
-def create_order(db: Session, order: schemas.OrderCreate):
-    db_order = models.Order(**order.dict())
-    db.add(db_order)
-    db.commit()
-    db.refresh(db_order)
-    return db_order
+        
+        return product
+    
