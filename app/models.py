@@ -1,12 +1,15 @@
-from sqlalchemy import Column, Integer,String, Float, Boolean
-from.database import Base
+from sqlalchemy import ForeignKey, DateTime
+from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
-class Production(Base):
-    __tablename__ = "products"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    description = Column(String)
-    price = Column(Integer, nullable=False)
+class Order(Base):
+    __tablename__ = "orders"
+    
+    id = column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False) # Links this order to a product.
     quantity = Column(Integer, nullable=False)
-    status = Column(String, default="Available")  #Available or sold
+    total_price = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    
+product = relationship("Product")
