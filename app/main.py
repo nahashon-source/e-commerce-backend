@@ -1,7 +1,17 @@
 from fastapi import FastAPI
-from . import models, database, routes
+from . import models
+from .database import  engine
+from .routes import router  as product_router
 
-models.Base.metadata.create_all(bind=database.engine)
+#create tables in the DB
+models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="E-commerce API")
-app.include_router(routes.router)
+
+#initalize FastAPI app
+app = FastAPI(
+    title = "E-commerce API",
+    version = "1.0.0"
+)
+
+#include produuct-related routes
+app.include_router(product_router)
