@@ -39,3 +39,7 @@ def mark_sold(product_id: int, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+@router.post("/order", response_model=schemas.Order)
+def place_order(order_data: schemas.orderCreate, db: Session = Depends(get_db)):
+    return crud.create_order(db, order_data)
