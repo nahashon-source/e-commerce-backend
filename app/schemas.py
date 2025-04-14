@@ -39,3 +39,9 @@ class Order(BaseModel): #is for sending order data back (includes total_price, c
     
 class Config: # allows FastAPI to return SQLAlchemy models as JSON
     orm_mode = True
+    
+    
+class paymentRequest(BaseModel):
+    order_id: int
+    amount: float
+    payment_method: str
