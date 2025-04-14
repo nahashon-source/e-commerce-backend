@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
+from fastapi import HTTPException
 
 #CREATE
 def create_products(db: Session, product: schemas.ProductCreate): #create_prodct take a pydantic schema, converts it to a model, adds it to the DB
@@ -34,3 +35,35 @@ def mark_product_sold(db:Session, product_id: int):
         
         return product
     
+    
+def create_order(db: Session, order_data: schemas.ordercreate):
+    product = db.query(models.product).filter(models.product.id == order_data.product_id).first()
+    
+    if not product:
+        raise HTTPException(status_code =404, detail="Product nor found")
+    
+    if product.status == "Sold" or product.quantity < order_data.quantity:
+        raise HTTPException(status_code=4000, detail="Not enough stock or product sold")
+    
+    total_price = order_data.quantity * product.price
+    
+    
+    
+    
+#CREATE ORDER
+new_order = models.product(
+    product_id=order_data.product_id,
+    quantity=order_data.quantity,
+    total_price=total_price
+)
+db.add(new_order)
+
+
+#UPDATE INVENTORY
+product.quantity -= order_data.quantity
+if product.quantity == 0:
+    product.status = "sold"
+    
+    db.commit()
+    db.refresh(new_order)
+    return new_order
