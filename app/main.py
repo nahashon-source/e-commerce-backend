@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from . import models
-from .database import  engine
-from .routes import router  as product_router
+from app.models import models
+from app.database import  engine
+from app.routes import router  as product_router
 
 #create tables in the DB
 models.Base.metadata.create_all(bind=engine)
