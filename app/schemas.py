@@ -41,7 +41,7 @@ class Config: # allows FastAPI to return SQLAlchemy models as JSON
     orm_mode = True
     
     
-class paymentRequest(BaseModel):
+class PaymentRequest(BaseModel):
     order_id: int
     amount: float
     payment_method: str
