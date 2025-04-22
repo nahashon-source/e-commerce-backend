@@ -2,53 +2,52 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-
-#Base schema shared between create/update/read
+# Shared product fields
 class ProductBase(BaseModel):
-    name:str
+    name: str
     description: Optional[str] = None
     price: float
     quantity: int
-    
-    
-#schema for creating a new product(creation requests(POST/products))
+
+# Product creation request
 class ProductCreate(ProductBase):
     pass
 
-#schemas for response(includes ID and status)
-class product(ProductBase):
-    id : int
-    status : str
-    
-    class config:
-        orm_mode = True # allows SQLALCHEMY models to work with pydantic for auto serialization
-        
-        
-        
-    #Request: when placing an order
-class OrderCreate(BaseModel): #is for incoming data when placing an order.
-    product_id: int 
+# Product response
+class ProductResponse(ProductBase):
+    id: int
+    status: str
+
+    class Config:
+        orm_mode = True
+
+
+# Order creation request
+class OrderCreate(BaseModel):
+    product_id: int
     quantity: int
-    
-class Order(BaseModel): #is for sending order data back (includes total_price, created_at).
-    id : int
+
+# Order response
+class OrderResponse(BaseModel):
+    id: int
     product_id: int
     quantity: int
     total_price: float
     created_at: datetime
-    
-class Config: # allows FastAPI to return SQLAlchemy models as JSON
-    orm_mode = True #to allow SQLAlchemy model -> pydantic model conversion
-    
-    
+
+    class Config:
+        orm_mode = True
+
+
+# Payment
 class PaymentRequest(BaseModel):
     order_id: int
     amount: float
     payment_method: str
-    
-    
-class PaymentResponse(BaseModel)
-    status: str #"success " or "failed"
+
+
+class PaymentResponse(BaseModel):
+    status: str  # "success" or "failed"
     message: str
     order_id: Optional[int] = None
     amount: Optional[float] = None
