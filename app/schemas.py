@@ -45,3 +45,10 @@ class PaymentRequest(BaseModel):
     order_id: int
     amount: float
     payment_method: str
+    
+    
+class PaymentResponse(BaseModel)
+    status: str #"success " or "failed"
+    message: str
+    order_id: Optional[int] = None
+    amount: Optional[float] = None
