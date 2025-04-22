@@ -1,13 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
 
+
+
+#--------------------------------Product Schemas-------------------------------
 # Shared product fields
 class ProductBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    price: float
-    quantity: int
+    name: str = Field(..., min_length=2, max_length=100)
+    description: Optional[str] = Field(None, max_length=300)
+    price: float = Field(..., gt=0, description="Must be a positive number")
+    quantity: int = Field(..., ge=1, description="Minimum quantity is 1")
 
 # Product creation request
 class ProductCreate(ProductBase):
@@ -22,10 +25,12 @@ class ProductResponse(ProductBase):
         orm_mode = True
 
 
+#-------------------------------Order Schemas---------------------------------------
+
 # Order creation request
 class OrderCreate(BaseModel):
-    product_id: int
-    quantity: int
+    product_id: int = Field(..., gt=0)
+    quantity: int = Field(..., ge=1, description="Minimum order quantity is 1")
 
 # Order response
 class OrderResponse(BaseModel):
@@ -37,13 +42,21 @@ class OrderResponse(BaseModel):
 
     class Config:
         orm_mode = True
+        
+        
 
-
+#-------------------------------------Payment Schemas--------------------------
 # Payment
 class PaymentRequest(BaseModel):
-    order_id: int
-    amount: float
-    payment_method: str
+    order_id: int = Field(..., gt=0)
+    amount: float = Field(..., gt=0)
+    payment_method: str = Field(..., min_length=3)
+    
+    @validator("payment_method")
+    def validate_method(cls, v):
+    if v.lower() not in ["paypal", "stripe","mpesa"]:
+        raise ValueError("Invalid payment method. Must be 'paypal', 'stripe', or 'mpesa'")
+    return v.lower()
 
 
 class PaymentResponse(BaseModel):
