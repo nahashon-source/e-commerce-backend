@@ -38,7 +38,7 @@ class Order(BaseModel): #is for sending order data back (includes total_price, c
     created_at: datetime
     
 class Config: # allows FastAPI to return SQLAlchemy models as JSON
-    orm_mode = True
+    orm_mode = True #to allow SQLAlchemy model -> pydantic model conversion
     
     
 class PaymentRequest(BaseModel):
