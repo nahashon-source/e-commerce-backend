@@ -1,16 +1,23 @@
-from fastapi import FastAPI
-from app import models
-from app.database import engine
-from app.routes import router  # ✅ Correct import
+from fastapi import FastAPI,Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 
-# Create tables in the database
-models.Base.metadata.create_all(bind=engine)
-
-# Initialize FastAPI app
+# Existing app initialization
 app = FastAPI(
     title="E-commerce API",
     version="1.0.0"
 )
 
-# Include all routes (products, orders, payments) from the router
-app.include_router(router)
+# Global exception handler
+@app.exception_handler(FastAPIHTTPException)
+async def custom_http_exception_handler(request: Request, exc: FastAPIHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": exc.status_code,
+                "message": exc.detail
+            }
+        }
+    )
