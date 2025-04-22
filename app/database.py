@@ -1,9 +1,12 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-DATABASE_URL = "postgresql://nashon:23456@localhost/muchai"
+DATABASE_URL = os.getenv("DATABASE_URL")      
 
 # Creates the DB Connection
 engine = create_engine(DATABASE_URL) 
