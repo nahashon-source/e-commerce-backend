@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from . import crud, schemas
 from .database import SessionLocal
+from typing import List
+from .schemas import ProductResponse
 
 router = APIRouter()
 
@@ -19,14 +21,10 @@ def root():
     return {"message": "Welcome to the E-commerce API"}
 
 # GET /products - Get all products
-@router.get("/products")
+@router.get("/products", reponse_model=List[ProductResponse])
 def read_products(db: Session = Depends(get_db)):
-    products = crud.get_all_products(db)
-    return {
-        "status": "success",
-        "message": "Products retrieved successfully",
-        "data": {"products": products}
-    }
+    return crud.get_all_products(db)
+
 
 # GET /products/{id} - Get single product
 @router.get("/products/{product_id}")
@@ -34,12 +32,8 @@ def read_product(product_id: int, db: Session = Depends(get_db)):
     product = crud.get_product(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    return {
-        "status": "success",
-        "message": "Product retrieved successfully",
-        "data": {"product": product}
-    }
-
+    return product
+   
 # POST /products - Create a product
 @router.post("/products")
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
