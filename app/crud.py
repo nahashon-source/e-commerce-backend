@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from . import models, schemas
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from .import models
 
 # CREATE PRODUCT
 def create_product(db: Session, product: schemas.ProductCreate):
@@ -64,6 +67,7 @@ def create_order(db: Session, order_data: schemas.OrderCreate):
 
     # Save order
     db.add(new_order)
+    
 
     # Update product quantity and status
     product.quantity -= order_data.quantity
@@ -73,3 +77,73 @@ def create_order(db: Session, order_data: schemas.OrderCreate):
     db.commit()
     db.refresh(new_order)
     return new_order
+
+def verify_payment(db: Session, order_id:int, amount: float):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail="order not found")
+    
+    if amount != order.total_price:
+        raise HTTPException(status_code=404, detail="Incorrect payment amount")
+    
+    #optional: if you had 'paid' status - you could update it here
+    #order.status = "paid"
+    #db.commit()
+    
+    return{
+        "status": "Success",
+        "message": "Payment processed successfully",
+        "order_id": order.id,
+        "amount": amount
+    }
+    
+    
+#UPDATE PRODUCT DETAILS
+def update_product(db:Session , product_id:int, updated_data: schemas.ProductCreate):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    
+    if not product:
+        raise HTTPException(status_code=4004, detail=f"Product with id {product_id} not found")
+    
+    product.name = updated_data.name
+    product.description = updated_data.description
+    product.price = updated_data.price
+    product.quantity = updated_data.quantity
+    
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+
+
+#DELETE PRODUCT
+def delete_product(db:Session, product_id:int):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
+    
+    db.delete(product)
+    db.commit()
+    return{"detail": f"Product with id {product_id} deleted successfully"}
+
+
+#GET ALL ORDERS
+def get_all_orders(db: Session):
+    return db.query(models.Order).all()
+
+
+#GET ORDER BY ID
+def get_order(db: Session, order_id:int):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    
+    if not order:
+        raise HTTPException(status_code=404, detail=f"order with id {order_id} not found")
+    
+    return order
+
+
+    
+    
