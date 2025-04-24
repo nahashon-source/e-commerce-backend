@@ -57,3 +57,21 @@ def process_payment(payment: schemas.PaymentRequest):
         amount=payment.amount
     )
     return result
+
+
+#PRODUCT ROUTES
+@router.put("/products/{product_id}")
+def update_product_details(product_id: int, product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    return crud.update_product(db, product_id, product)
+
+@router.delete("/products/{product_id}")
+def remove_product(product_id: int, db: Session = Depends(get_db)):
+    return crud.delete_product(db, product_id)
+
+@router.get("/orders")
+def list_orders(db: Session = Depends(get_db)):
+    return crud.get_all_orders(db)
+
+@router.get("/orders/{order_id}")
+def get_order_details(order_id: int, db: Session = Depends(get_db)):
+    return crud.get_order(db, order_id)
