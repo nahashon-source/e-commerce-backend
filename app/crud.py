@@ -110,6 +110,9 @@ def update_product(db:Session , product_id:int, updated_data: schemas.ProductCre
     product.description = updated_data.description
     product.price = updated_data.price
     product.quantity = updated_data.quantity
+    #reset status to 'available ' if restocking
+    if product.quantity > 0 and product.status.lower() == "sold":
+        product.status = "available"
     
     db.commit()
     db.refresh(product)
