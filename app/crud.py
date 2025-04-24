@@ -119,8 +119,6 @@ def update_product(db:Session , product_id:int, updated_data: schemas.ProductCre
     return product
 
 
-
-
 #DELETE PRODUCT
 def delete_product(db:Session, product_id:int):
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
