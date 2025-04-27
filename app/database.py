@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-
 # Creates the DB Connection
 engine = create_engine("DATABASE_URL") 
 
@@ -16,3 +15,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 #define models(tables)
 Base = declarative_base()
 
+
+
+#THIS FILE READS FROM THE .env
