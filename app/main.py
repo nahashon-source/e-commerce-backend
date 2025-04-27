@@ -6,7 +6,7 @@ import logging
 
 from . import models
 from .database import engine
-from app.routers import product, order 
+from . import routes 
 
 # Initializing logging
 logging.basicConfig(level=logging.ERROR)
@@ -19,8 +19,8 @@ app = FastAPI(
 )
 
 # Include your routers
-app.include_router(product.router)
-app.include_router(order.router)
+app.include_router(routes.product.router)
+app.include_router(routes.order.router)
 
 # HTTP Exception handler
 @app.exception_handler(FastAPIHTTPException)
