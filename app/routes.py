@@ -19,51 +19,52 @@ def get_db():
 # Base API Root Route
 # ------------------------------------------------------
 
-@router.get("/")
+@router.get("/", tags=["Root"])
 def root():
+    """Welcome endpoint."""
     return {"message": "Welcome to the E-commerce API"}
 
 # ------------------------------------------------------
 # Product Routes
 # ------------------------------------------------------
 
-# Get all products
-@router.get("/products", response_model=List[schemas.ProductResponse])
+@router.get("/products", response_model=List[schemas.ProductResponse], tags=["Products"])
 def get_products(db: Session = Depends(get_db)):
+    """Retrieve all available products."""
     return crud.get_all_products(db)
 
-# Get one product by ID
-@router.get("/products/{product_id}", response_model=schemas.ProductResponse)
+@router.get("/products/{product_id}", response_model=schemas.ProductResponse, tags=["Products"])
 def get_product(product_id: int, db: Session = Depends(get_db)):
+    """Retrieve a product by its ID."""
     product = crud.get_product(db, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return product
 
-# Create a new product
-@router.post("/products", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/products", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED, tags=["Products"])
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    """Create a new product."""
     return crud.create_product(db, product)
 
-# Update product details
-@router.put("/products/{product_id}", response_model=schemas.ProductResponse)
+@router.put("/products/{product_id}", response_model=schemas.ProductResponse, tags=["Products"])
 def update_product(product_id: int, product: schemas.ProductCreate, db: Session = Depends(get_db)):
+    """Update an existing product."""
     updated_product = crud.update_product(db, product_id, product)
     if not updated_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return updated_product
 
-# Mark product as sold
-@router.put("/products/{product_id}/status", response_model=schemas.ProductResponse)
+@router.put("/products/{product_id}/status", response_model=schemas.ProductResponse, tags=["Products"])
 def mark_product_sold(product_id: int, db: Session = Depends(get_db)):
+    """Mark a product as sold."""
     product = crud.mark_product_sold(db, product_id)
     if not product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found or already sold")
     return product
 
-# Delete a product
-@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Products"])
 def delete_product(product_id: int, db: Session = Depends(get_db)):
+    """Delete a product."""
     result = crud.delete_product(db, product_id)
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
@@ -73,19 +74,19 @@ def delete_product(product_id: int, db: Session = Depends(get_db)):
 # Order Routes
 # ------------------------------------------------------
 
-# Place a new order
-@router.post("/orders", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/orders", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED, tags=["Orders"])
 def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
+    """Create a new order."""
     return crud.create_order(db, order_data)
 
-# Get all orders
-@router.get("/orders", response_model=List[schemas.OrderResponse])
+@router.get("/orders", response_model=List[schemas.OrderResponse], tags=["Orders"])
 def get_orders(db: Session = Depends(get_db)):
+    """Retrieve all orders."""
     return crud.get_all_orders(db)
 
-# Get one order by ID
-@router.get("/orders/{order_id}", response_model=schemas.OrderResponse)
+@router.get("/orders/{order_id}", response_model=schemas.OrderResponse, tags=["Orders"])
 def get_order(order_id: int, db: Session = Depends(get_db)):
+    """Retrieve an order by its ID."""
     order = crud.get_order(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
@@ -95,11 +96,14 @@ def get_order(order_id: int, db: Session = Depends(get_db)):
 # Payment Routes
 # ------------------------------------------------------
 
-# Process payment
-@router.post("/payments", response_model=schemas.PaymentResponse, status_code=status.HTTP_201_CREATED)
-def process_payment(payment: schemas.PaymentRequest):
+@router.post("/payments", response_model=schemas.PaymentResponse, status_code=status.HTTP_201_CREATED, tags=["Payments"])
+def process_payment(payment: schemas.PaymentRequest, db: Session = Depends(get_db)):
+    """Process a payment request."""
     result = crud.verify_payment(
+        db=db,
         order_id=payment.order_id,
         amount=payment.amount
     )
+    if not result:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment verification failed")
     return result
