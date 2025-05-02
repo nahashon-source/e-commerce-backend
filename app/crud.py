@@ -1,75 +1,115 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
-from . import models, schemas, crud
-from .database import get_db
+from fastapi import HTTPException
+from . import models, schemas
 
-router = APIRouter()
-
-# Base API Root Route
-@router.get("/", tags=["Root"])
-def root():
-    """Welcome endpoint."""
-    return {"message": "Welcome to the E-commerce API"}
-
-# Product Routes
-
-@router.get("/products", response_model=List[schemas.ProductResponse], tags=["Products"])
-def get_products(db: Session = Depends(get_db)):
-    """Retrieve all available products."""
-    return crud.get_all_products(db)
-
-@router.get("/products/{product_id}", response_model=schemas.ProductResponse, tags=["Products"])
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    """Retrieve a product by its ID."""
-    return crud.get_product(db, product_id)
-
-@router.post("/products", response_model=schemas.ProductResponse, status_code=status.HTTP_201_CREATED, tags=["Products"])
-def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
-    """Create a new product."""
-    return crud.create_product(db, product)
-
-@router.put("/products/{product_id}", response_model=schemas.ProductResponse, tags=["Products"])
-def update_product(product_id: int, product: schemas.ProductCreate, db: Session = Depends(get_db)):
-    """Update an existing product."""
-    return crud.update_product(db, product_id, product)
-
-@router.put("/products/{product_id}/status", response_model=schemas.ProductResponse, tags=["Products"])
-def mark_product_sold(product_id: int, db: Session = Depends(get_db)):
-    """Mark a product as sold."""
-    return crud.mark_product_sold(db, product_id)
-
-@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["Products"])
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    """Delete a product."""
-    crud.delete_product(db, product_id)
-    return
-
-# Order Routes
-
-@router.post("/orders", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED, tags=["Orders"])
-def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
-    """Create a new order."""
-    return crud.create_order(db, order_data)
-
-@router.get("/orders", response_model=List[schemas.OrderResponse], tags=["Orders"])
-def get_orders(db: Session = Depends(get_db)):
-    """Retrieve all orders."""
-    return crud.get_all_orders(db)
-
-@router.get("/orders/{order_id}", response_model=schemas.OrderResponse, tags=["Orders"])
-def get_order(order_id: int, db: Session = Depends(get_db)):
-    """Retrieve an order by its ID."""
-    return crud.get_order(db, order_id)
-
-# Payment Routes
-
-@router.post("/payments", response_model=schemas.PaymentResponse, status_code=status.HTTP_201_CREATED, tags=["Payments"])
-def process_payment(payment: schemas.PaymentRequest, db: Session = Depends(get_db)):
-    """Process a payment request."""
-    result = crud.verify_payment(
-        db=db,
-        order_id=payment.order_id,
-        amount=payment.amount
+# Create a new product
+def create_product(db: Session, product: schemas.ProductCreate) -> models.Product:
+    new_product = models.Product(
+        name=product.name,
+        description=product.description,
+        price=product.price,
+        quantity=product.quantity,
+        status="available"
     )
-    return result
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    return new_product
+
+# Get all products
+def get_all_products(db: Session) -> list[models.Product]:
+    return db.query(models.Product).all()
+
+# Get a product by ID
+def get_product(db: Session, product_id: int) -> models.Product:
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
+    return product
+
+# Mark product as sold
+def mark_product_sold(db: Session, product_id: int) -> models.Product:
+    product = get_product(db, product_id)
+    if product.status.lower() == "sold":
+        raise HTTPException(status_code=400, detail="Product already sold")
+    product.status = "sold"
+    db.commit()
+    db.refresh(product)
+    return product
+
+# Update product details
+def update_product(db: Session, product_id: int, updated_data: schemas.ProductCreate) -> models.Product:
+    product = get_product(db, product_id)
+    product.name = updated_data.name
+    product.description = updated_data.description
+    product.price = updated_data.price
+    product.quantity = updated_data.quantity
+    if product.quantity > 0 and product.status.lower() == "sold":
+        product.status = "available"
+    db.commit()
+    db.refresh(product)
+    return product
+
+# Delete a product
+def delete_product(db: Session, product_id: int) -> dict:
+    product = get_product(db, product_id)
+    db.delete(product)
+    db.commit()
+    return {"detail": f"Product with id {product_id} deleted successfully"}
+
+# Create a new order
+def create_order(db: Session, order_data: schemas.OrderCreate) -> models.Order:
+    product = get_product(db, order_data.product_id)
+    if product.status.lower() == "sold":
+        raise HTTPException(status_code=400, detail="Cannot order a sold product")
+    if product.quantity < order_data.quantity:
+        raise HTTPException(status_code=400, detail=f"Insufficient stock. Available: {product.quantity}")
+
+    total_price = order_data.quantity * product.price
+    new_order = models.Order(
+        product_id=order_data.product_id,
+        quantity=order_data.quantity,
+        total_price=total_price
+    )
+    db.add(new_order)
+    product.quantity -= order_data.quantity
+    if product.quantity == 0:
+        product.status = "sold"
+    db.commit()
+    db.refresh(new_order)
+    return new_order
+
+# Get all orders
+def get_all_orders(db: Session) -> list[models.Order]:
+    return db.query(models.Order).all()
+
+# Get an order by ID
+def get_order(db: Session, order_id: int) -> models.Order:
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail=f"Order with id {order_id} not found")
+    return order
+
+# Verify and record payment
+def verify_payment(db: Session, order_id: int, amount: float) -> dict:
+    order = get_order(db, order_id)
+    if amount != order.total_price:
+        raise HTTPException(status_code=400, detail="Incorrect payment amount")
+
+    new_payment = models.Payment(
+        order_id=order_id,
+        payment_method="mock_method",
+        amount_paid=amount,
+        status="completed"
+    )
+    db.add(new_payment)
+    db.commit()
+    db.refresh(new_payment)
+
+    return {
+        "status": "Success",
+        "message": "Payment processed successfully",
+        "order_id": order.id,
+        "amount": amount,
+        "payment_id": new_payment.id
+    }
