@@ -18,6 +18,7 @@ class ProductResponse(ProductBase):
     """Product response model."""
     id: int
     status: str
+    created_at: datetime
 
     class Config:
         orm_mode = True
@@ -57,7 +58,12 @@ class PaymentRequest(BaseModel):
 
 class PaymentResponse(BaseModel):
     """Payment response model."""
+    id: int
     status: str  # "success" or "failed"
     message: str
     order_id: Optional[int] = None
     amount: Optional[float] = None
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
