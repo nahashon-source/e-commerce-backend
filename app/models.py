@@ -14,7 +14,7 @@ class Product(Base):
     status = Column(String, default="available")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    orders = relationship("Order", back_populates="product")
+    orders = relationship("Order", back_populates="product", cascade="all, delete")
 
 class Order(Base):
     __tablename__ = "orders"
@@ -26,7 +26,7 @@ class Order(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     product = relationship("Product", back_populates="orders")
-    payments = relationship("Payment", back_populates="order")
+    payments = relationship("Payment", back_populates="order", cascade="all, delete")
 
 class Payment(Base):
     __tablename__ = "payments"
