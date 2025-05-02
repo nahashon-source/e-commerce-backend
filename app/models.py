@@ -14,6 +14,8 @@ class Product(Base):
     status = Column(String, default="available")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    orders = relationship("Order", back_populates="product")
+
 class Order(Base):
     __tablename__ = "orders"
     
@@ -23,7 +25,8 @@ class Order(Base):
     total_price = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    product = relationship("Product")
+    product = relationship("Product", back_populates="orders")
+    payments = relationship("Payment", back_populates="order")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -33,5 +36,6 @@ class Payment(Base):
     payment_method = Column(String, nullable=False)
     amount_paid = Column(Float, nullable=False)
     status = Column(String, default="pending")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    order = relationship("Order")
+    order = relationship("Order", back_populates="payments")
