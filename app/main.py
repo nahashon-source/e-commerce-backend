@@ -3,10 +3,9 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 import logging
-
-from . import models
+from app import models
 from .database import engine
-from . import routes 
+from app import routes 
 
 # Initializing logging
 logging.basicConfig(level=logging.ERROR)
