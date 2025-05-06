@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional
 from datetime import datetime
 
-#--------------------------------Product Schemas-------------------------------
+#-------------------------------Product Schemas--------------------------------
 class ProductBase(BaseModel):
     """Shared attributes for product."""
     name: str = Field(..., min_length=2, max_length=100, example="Classic T-Shirt")
@@ -24,7 +24,7 @@ class ProductResponse(ProductBase):
         orm_mode = True
 
 
-#-------------------------------Order Schemas---------------------------------------
+#-------------------------------Order Schemas-----------------------------------
 class OrderCreate(BaseModel):
     """Attributes required to place an order."""
     product_id: int = Field(..., gt=0, example=1)
@@ -42,7 +42,7 @@ class OrderResponse(BaseModel):
         orm_mode = True
 
 
-#-------------------------------------Payment Schemas--------------------------
+#------------------------------Payment Schemas----------------------------------
 class PaymentRequest(BaseModel):
     """Attributes required to request a payment."""
     order_id: int = Field(..., gt=0, example=5)
@@ -59,7 +59,7 @@ class PaymentRequest(BaseModel):
 class PaymentResponse(BaseModel):
     """Payment response model."""
     id: int
-    status: str  # "success" or "failed"
+    status: str  # "success", "failed", or "pending"
     message: str
     order_id: Optional[int] = None
     amount: Optional[float] = None
