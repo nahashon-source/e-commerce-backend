@@ -3,14 +3,14 @@ from fastapi import HTTPException
 from typing import List
 from . import models, schemas
 
-# Status constants
+# Constants
 PRODUCT_STATUS_AVAILABLE = "available"
 PRODUCT_STATUS_SOLD = "sold"
+PAYMENT_STATUS_COMPLETED = "completed"
 
-# ----------------------------- Product CRUD Operations ---------------------------- #
+# ---------------------------- Product CRUD Operations ---------------------------- #
 
 def create_product(db: Session, product: schemas.ProductCreate) -> models.Product:
-    """Create a new product and add it to the database."""
     new_product = models.Product(
         name=product.name,
         description=product.description,
@@ -25,12 +25,10 @@ def create_product(db: Session, product: schemas.ProductCreate) -> models.Produc
 
 
 def get_all_products(db: Session) -> List[models.Product]:
-    """Retrieve all products from the database."""
     return db.query(models.Product).order_by(models.Product.id.desc()).all()
 
 
 def get_product(db: Session, product_id: int) -> models.Product:
-    """Retrieve a specific product by its ID."""
     product = db.query(models.Product).filter(models.Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
@@ -38,7 +36,6 @@ def get_product(db: Session, product_id: int) -> models.Product:
 
 
 def mark_product_sold(db: Session, product_id: int) -> models.Product:
-    """Mark a product as sold."""
     product = get_product(db, product_id)
     if product.status.lower() == PRODUCT_STATUS_SOLD:
         raise HTTPException(status_code=400, detail="Product already sold")
@@ -49,7 +46,6 @@ def mark_product_sold(db: Session, product_id: int) -> models.Product:
 
 
 def update_product(db: Session, product_id: int, updated_data: schemas.ProductCreate) -> models.Product:
-    """Update product details."""
     product = get_product(db, product_id)
 
     product.name = updated_data.name
@@ -57,11 +53,11 @@ def update_product(db: Session, product_id: int, updated_data: schemas.ProductCr
     product.price = updated_data.price
     product.quantity = updated_data.quantity
 
-    # Auto-switch status if quantity updated
-    if product.quantity > 0 and product.status.lower() == PRODUCT_STATUS_SOLD:
-        product.status = PRODUCT_STATUS_AVAILABLE
-    elif product.quantity == 0:
+    # Update status based on new quantity
+    if product.quantity == 0:
         product.status = PRODUCT_STATUS_SOLD
+    elif product.status.lower() == PRODUCT_STATUS_SOLD:
+        product.status = PRODUCT_STATUS_AVAILABLE
 
     db.commit()
     db.refresh(product)
@@ -69,17 +65,15 @@ def update_product(db: Session, product_id: int, updated_data: schemas.ProductCr
 
 
 def delete_product(db: Session, product_id: int) -> dict:
-    """Delete a product from the database."""
     product = get_product(db, product_id)
     db.delete(product)
     db.commit()
     return {"detail": f"Product with id {product_id} deleted successfully"}
 
 
-# ----------------------------- Order CRUD Operations ---------------------------- #
+# ---------------------------- Order CRUD Operations ---------------------------- #
 
 def create_order(db: Session, order_data: schemas.OrderCreate) -> models.Order:
-    """Create a new order if stock is available."""
     product = get_product(db, order_data.product_id)
 
     if product.status.lower() == PRODUCT_STATUS_SOLD:
@@ -89,7 +83,9 @@ def create_order(db: Session, order_data: schemas.OrderCreate) -> models.Order:
         raise HTTPException(status_code=400, detail="Order quantity must be at least 1")
 
     if product.quantity < order_data.quantity:
-        raise HTTPException(status_code=400, detail=f"Insufficient stock. Available: {product.quantity}")
+        raise HTTPException(
+            status_code=400, detail=f"Insufficient stock. Available: {product.quantity}"
+        )
 
     total_price = order_data.quantity * product.price
 
@@ -99,7 +95,6 @@ def create_order(db: Session, order_data: schemas.OrderCreate) -> models.Order:
         total_price=total_price
     )
 
-    # Reduce product quantity
     product.quantity -= order_data.quantity
     if product.quantity == 0:
         product.status = PRODUCT_STATUS_SOLD
@@ -111,22 +106,19 @@ def create_order(db: Session, order_data: schemas.OrderCreate) -> models.Order:
 
 
 def get_all_orders(db: Session) -> List[models.Order]:
-    """Retrieve all orders from the database."""
     return db.query(models.Order).order_by(models.Order.id.desc()).all()
 
 
 def get_order(db: Session, order_id: int) -> models.Order:
-    """Retrieve a specific order by its ID."""
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail=f"Order with id {order_id} not found")
     return order
 
 
-# ----------------------------- Payment CRUD Operations ---------------------------- #
+# ---------------------------- Payment CRUD Operations ---------------------------- #
 
 def verify_payment(db: Session, payment_data: schemas.PaymentRequest) -> dict:
-    """Verify payment amount and record payment details."""
     order = get_order(db, payment_data.order_id)
 
     if payment_data.amount != order.total_price:
@@ -139,7 +131,7 @@ def verify_payment(db: Session, payment_data: schemas.PaymentRequest) -> dict:
         order_id=payment_data.order_id,
         payment_method=payment_data.payment_method,
         amount_paid=payment_data.amount,
-        status="completed"
+        status=PAYMENT_STATUS_COMPLETED
     )
 
     db.add(new_payment)
