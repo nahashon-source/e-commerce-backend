@@ -7,7 +7,13 @@ from dotenv import load_dotenv
 # Load variables from .env
 load_dotenv()
 
+#Fetch DATBASE_URL from environment variables
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+#Validate DATABASE_URL
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable not set in your .env file")
+    
 # Safely fetch the value from .env
 DATABASE_URL = os.getenv("DATABASE_URL")
 
