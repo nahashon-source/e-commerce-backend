@@ -6,7 +6,6 @@ from . import models, schemas
 # Constants
 PRODUCT_STATUS_AVAILABLE = "available"
 PRODUCT_STATUS_SOLD = "sold"
-PAYMENT_STATUS_COMPLETED = "completed"
 
 # ---------------------------- Product CRUD Operations ---------------------------- #
 
@@ -53,7 +52,6 @@ def update_product(db: Session, product_id: int, updated_data: schemas.ProductCr
     product.price = updated_data.price
     product.quantity = updated_data.quantity
 
-    # Update status based on new quantity
     if product.quantity == 0:
         product.status = PRODUCT_STATUS_SOLD
     elif product.status.lower() == PRODUCT_STATUS_SOLD:
@@ -118,7 +116,7 @@ def get_order(db: Session, order_id: int) -> models.Order:
 
 # ---------------------------- Payment CRUD Operations ---------------------------- #
 
-def verify_payment(db: Session, payment_data: schemas.PaymentRequest) -> dict:
+def verify_payment(db: Session, payment_data: schemas.PaymentRequest) -> schemas.PaymentVerifyResponse:
     order = get_order(db, payment_data.order_id)
 
     if payment_data.amount != order.total_price:
@@ -131,17 +129,17 @@ def verify_payment(db: Session, payment_data: schemas.PaymentRequest) -> dict:
         order_id=payment_data.order_id,
         payment_method=payment_data.payment_method,
         amount_paid=payment_data.amount,
-        status=PAYMENT_STATUS_COMPLETED
+        status=models.PaymentStatusEnum.completed  # <-- using Enum safely here
     )
 
     db.add(new_payment)
     db.commit()
     db.refresh(new_payment)
 
-    return {
-        "status": "Success",
-        "message": "Payment processed successfully",
-        "order_id": order.id,
-        "amount": payment_data.amount,
-        "payment_id": new_payment.id
-    }
+    return schemas.PaymentVerifyResponse(
+        status="Success",
+        message="Payment processed successfully.",
+        order_id=order.id,
+        amount=payment_data.amount,
+        payment_id=new_payment.id
+    )
