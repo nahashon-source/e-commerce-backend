@@ -1,63 +1,81 @@
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from . import crud, models, schemas
-from .database import get_db
+from fastapi import HTTPException, status
+from . import models, schemas
 
-router = APIRouter()
+# ---------------------------- Product CRUD ---------------------------- #
 
+def create_product(db: Session, product: schemas.ProductCreate):
+    new_product = models.Product(**product.dict())
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    return new_product
 
-# ---------------------------- Product Routes ---------------------------- #
+def get_all_products(db: Session):
+    return db.query(models.Product).all()
 
-@router.post("/products", response_model=schemas.ProductResponse)
-def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
-    return crud.create_product(db, product)
+def get_product(db: Session, product_id: int):
+    product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found.")
+    return product
 
+def update_product(db: Session, product_id: int, product_data: schemas.ProductCreate):
+    product = get_product(db, product_id)
+    for key, value in product_data.dict().items():
+        setattr(product, key, value)
+    db.commit()
+    db.refresh(product)
+    return product
 
-@router.get("/products", response_model=List[schemas.ProductResponse])
-def get_all_products(db: Session = Depends(get_db)):
-    return crud.get_all_products(db)
+def mark_product_sold(db: Session, product_id: int):
+    product = get_product(db, product_id)
+    product.status = "Sold"
+    db.commit()
+    db.refresh(product)
+    return product
 
+def delete_product(db: Session, product_id: int):
+    product = get_product(db, product_id)
+    db.delete(product)
+    db.commit()
+    return
 
-@router.get("/products/{product_id}", response_model=schemas.ProductResponse)
-def get_product(product_id: int, db: Session = Depends(get_db)):
-    return crud.get_product(db, product_id)
+# ---------------------------- Order CRUD ---------------------------- #
 
+def create_order(db: Session, order: schemas.OrderCreate):
+    product = get_product(db, order.product_id)
+    if product.status == "Sold":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product is already sold.")
 
-@router.put("/products/{product_id}", response_model=schemas.ProductResponse)
-def update_product(product_id: int, product_data: schemas.ProductCreate, db: Session = Depends(get_db)):
-    return crud.update_product(db, product_id, product_data)
+    new_order = models.Order(**order.dict())
+    product.status = "Sold"
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+    return new_order
 
+def get_all_orders(db: Session):
+    return db.query(models.Order).all()
 
-@router.patch("/products/{product_id}/mark-sold", response_model=schemas.ProductResponse)
-def mark_product_sold(product_id: int, db: Session = Depends(get_db)):
-    return crud.mark_product_sold(db, product_id)
+def get_order(db: Session, order_id: int):
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found.")
+    return order
 
+# ---------------------------- Payment CRUD ---------------------------- #
 
-@router.delete("/products/{product_id}")
-def delete_product(product_id: int, db: Session = Depends(get_db)):
-    return crud.delete_product(db, product_id)
+def verify_payment(db: Session, payment_data: schemas.PaymentRequest):
+    order = get_order(db, payment_data.order_id)
+    # Mock payment verification logic
+    if payment_data.amount <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payment amount.")
 
-
-# ---------------------------- Order Routes ---------------------------- #
-
-@router.post("/orders", response_model=schemas.OrderResponse)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    return crud.create_order(db, order)
-
-
-@router.get("/orders", response_model=List[schemas.OrderResponse])
-def get_all_orders(db: Session = Depends(get_db)):
-    return crud.get_all_orders(db)
-
-
-@router.get("/orders/{order_id}", response_model=schemas.OrderResponse)
-def get_order(order_id: int, db: Session = Depends(get_db)):
-    return crud.get_order(db, order_id)
-
-
-# ---------------------------- Payment Routes ---------------------------- #
-
-@router.post("/payments/verify", response_model=schemas.PaymentVerifyResponse)
-def verify_payment(payment_data: schemas.PaymentRequest, db: Session = Depends(get_db)):
-    return crud.verify_payment(db, payment_data)
+    # Assume success for demo
+    response = {
+        "order_id": payment_data.order_id,
+        "amount": payment_data.amount,
+        "status": "Payment Verified"
+    }
+    return response
