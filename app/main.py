@@ -3,25 +3,29 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
 import logging
-from app import models
-from .database import engine
-from app import routes 
 
-# Initializing logging
+from app import models
+from app.database import engine
+from app import routes
+
+# ---------------------------- Logging Configuration ---------------------------- #
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 
-# Existing app initialization
+# ---------------------------- FastAPI App Initialization ---------------------------- #
 app = FastAPI(
     title="E-commerce API",
     version="1.0.0"
 )
 
-# Include your routers
-app.include_router(routes.product.router)
-app.include_router(routes.order.router)
+# ---------------------------- Database Table Creation ---------------------------- #
+models.Base.metadata.create_all(bind=engine)
 
-# HTTP Exception handler
+# ---------------------------- Routers ---------------------------- #
+app.include_router(routes.product.router, prefix="/api")
+app.include_router(routes.order.router, prefix="/api")
+
+# ---------------------------- Custom Exception Handlers ---------------------------- #
 @app.exception_handler(FastAPIHTTPException)
 async def custom_http_exception_handler(request: Request, exc: FastAPIHTTPException):
     return JSONResponse(
@@ -35,7 +39,6 @@ async def custom_http_exception_handler(request: Request, exc: FastAPIHTTPExcept
         }
     )
 
-# Global exception handler
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled server error: {exc}")
@@ -49,6 +52,3 @@ async def global_exception_handler(request: Request, exc: Exception):
             }
         }
     )
-
-# DB Create Tables
-models.Base.metadata.create_all(bind=engine)
